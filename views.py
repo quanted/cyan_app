@@ -1,13 +1,25 @@
-from django.template.loader import render_to_string
-from django.http import HttpResponse
-from django.shortcuts import redirect
-#import links_left
+"""
+.. module:: views
+   :synopsis: A useful module indeed.
+"""
+
 import os
-#import secret
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.shortcuts import redirect
 from django.conf import settings
+import requests
 
 
-def hem_landing_page(request):
+#hwbi_server = os.environ['REST_SERVER_8']
+hwbi_server = 'https://server8'
+
+# ################ How model name appears on web page ################
+header = 'Cyan'
+# ####################################################################
+
+
+def cyan_landing_page(request):
     """ Returns the html of the landing page for qed. """
     html = render_to_string('01epa_drupal_header.html', {})
     html += render_to_string('02epa_drupal_header_bluestripe.html', {})

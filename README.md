@@ -1,2 +1,2 @@
-# cyan_app
-django app for cyan
+# pisces_app
+django app for pisces
