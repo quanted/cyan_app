@@ -12,7 +12,7 @@ def ordered_list(model=None, page=None):
         ),
         ('Documentation', OrderedDict([
                 ('API Documentation', '/qedinternal.epa.gov/cyan/rest'),
-                ('Source Code', '/github.com/USEPA/cyan')
+                ('Source Code', '/github.com/quanted/qed_cyan')
             ])
         )
     ])

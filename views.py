@@ -15,7 +15,7 @@ import requests
 hwbi_server = 'https://server8'
 
 # ################ How model name appears on web page ################
-header = 'Cyan'
+header = 'CyAN'
 # ####################################################################
 
 

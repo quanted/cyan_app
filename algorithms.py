@@ -7,10 +7,9 @@ import links_left
 from cyan_app import views
 
 
-
 def algorithm_page(request, model='cyan', header='none'):
     header = views.header
-    x = render_to_string('cyan_algorithm.html')
+    x = render_to_string('cyan_algorithm.txt')
 
     """ Returns the html of the references page for cyan. """
     html = render_to_string('01epa_drupal_header.html', {})
