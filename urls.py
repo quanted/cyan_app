@@ -9,10 +9,9 @@ import django.contrib.auth.views
 import views
 import description
 import dashboard
-# import stream
 import algorithms
 import references
-import links_left
+import cyan_rest
 
 # if settings.IS_PUBLIC:
 urlpatterns = [
@@ -24,6 +23,9 @@ urlpatterns = [
     url(r'^references$', references.references_page, {'model': 'cyan'}),
     # url(r'^api$', rest.rest_page, {'model': 'cyan'}),
     # url(r'^swag$', views.getSwaggerJsonContent)
+
+    # rest urls
+    url(r'^rest/location/data$', cyan_rest.get_location_data)
 ]
 # else:
 #     urlpatterns = [
