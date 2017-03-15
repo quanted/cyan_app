@@ -9,21 +9,14 @@ from cyan_app import views
 
 
 def dashboard_page(request, model='cyan', header='none'):
-    header = views.header
-    x = render_to_string('cyan_map_page.html')
-
     """ Returns the html of the references page for cyan. """
     html = render_to_string('01epa_drupal_header.html', {})
-    html += render_to_string('02epa_drupal_header_bluestripe_onesidebar.html', {})
-    html += render_to_string('03epa_drupal_section_title.html', {})
+    html += render_to_string('02epa_drupal_header_bluestripe_wide.html', {})
 
-    html += render_to_string('04ubertext_start_index_drupal.html', {
-        'TITLE': header + ' Dashboard',
-        'TEXT_PARAGRAPH': x})
+    html += render_to_string('cyan_dashboard.html', {})
 
     html += render_to_string('04ubertext_end_drupal.html', {})
 
-    html += links_left.ordered_list(model, 'dashboard')
     html += render_to_string('10epa_drupal_footer.html', {})
 
 

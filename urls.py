@@ -8,10 +8,11 @@ import django.contrib.auth.views
 
 import views
 import description
+import map
+import lakecomparison
 import dashboard
 import algorithms
 import references
-import lakecomparison
 import cyan_rest
 
 # if settings.IS_PUBLIC:
@@ -19,10 +20,12 @@ urlpatterns = [
     # url(r'^$', views.cyan_landing_page),
     #front end urls
     url(r'^$', description.description_page, {'model': 'cyan'}),
+    url(r'^map$', map.map_page, {'model': 'cyan'}),
+    url(r'^lakecomparison$', lakecomparison.lakecomparison_page, {'model': 'cyan'}),
     url(r'^dashboard$', dashboard.dashboard_page, {'model': 'cyan'}),
     url(r'^algorithms$', algorithms.algorithm_page, {'model': 'cyan'}),
     url(r'^references$', references.references_page, {'model': 'cyan'}),
-    url(r'^lakecomparison$', lakecomparison.lakecomparison_page, {'model': 'cyan'}),
+
     # url(r'^api$', rest.rest_page, {'model': 'cyan'}),
     # url(r'^swag$', views.getSwaggerJsonContent)
 
