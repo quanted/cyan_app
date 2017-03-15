@@ -10,19 +10,19 @@ def get_location_data(request):
     """
     # print('Inside get_location_data')
     baseURL = os.getenv('CYAN_REST_SERVER')
-    print(baseURL)
+    # print(baseURL)
     data = (request.POST)
-    print(data)
+    # print(data)
     latitude = data['latitude']
-    print(latitude)
+    # print(latitude)
     longitude = data['longitude']
-    print(longitude)
+    # print(longitude)
     date = data['date']
-    print(date)
+    # print(date)
     url = "{0}/location/data/{1}/{2}/{3}".format(baseURL, latitude, longitude, date)
-    print(url)
+    # print(url)
     resp = requests.get(url)
     resp2 = HttpResponse(resp.content, content_type='application/json')
     # print(resp2)
-    print(resp.content)
+    # print(resp.content)
     return resp2

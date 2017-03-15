@@ -11,6 +11,7 @@ import description
 import dashboard
 import algorithms
 import references
+import lakecomparison
 import cyan_rest
 
 # if settings.IS_PUBLIC:
@@ -21,6 +22,7 @@ urlpatterns = [
     url(r'^dashboard$', dashboard.dashboard_page, {'model': 'cyan'}),
     url(r'^algorithms$', algorithms.algorithm_page, {'model': 'cyan'}),
     url(r'^references$', references.references_page, {'model': 'cyan'}),
+    url(r'^lakecomparison$', lakecomparison.lakecomparison_page, {'model': 'cyan'}),
     # url(r'^api$', rest.rest_page, {'model': 'cyan'}),
     # url(r'^swag$', views.getSwaggerJsonContent)
 
