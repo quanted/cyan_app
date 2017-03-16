@@ -10,7 +10,7 @@ from cyan_app import views
 
 def map_page(request, model='cyan', header='none'):
     header = views.header
-    x = render_to_string('cyan_map_page_alt.html')
+    x = render_to_string('cyan_map_page.html')
 
     """ Returns the html of the references page for cyan. """
     html = render_to_string('01epa_drupal_header.html', {})
