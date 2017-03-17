@@ -1,4 +1,5 @@
 django
+nose
 numpy
 requests
 tabulate
