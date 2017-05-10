@@ -5,9 +5,9 @@ import linkcheck_helper
 
 test = {}
 
-servers = ["http://qedinternal.epa.gov/cyan/"]
+servers = ["https://qedinternal.epa.gov/cyan/"]
 
-pages = ["map/", "lakecomparison/", "dashboard/", "algorithms/",  "references/"]
+pages = ["map", "lakecomparison", "dashboard", "algorithms",  "references"]
 
 api_endpoints = ["https://cyan.epa.gov/cyan/cyano/location/data/28.6138/-81.6227/2017-12-08",
                  "https://cyan.epa.gov/cyan/cyano/notifications/2015-05-03T20-16-26-000-0400",
