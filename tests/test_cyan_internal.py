@@ -42,10 +42,10 @@ class TestCyanPages(unittest.TestCase):
                 assert_error = True
             except Exception as e:
                 # handle any other exception
-                print "Error '{0}' occured. Arguments {1}.".format(e.message, e.args)
+                print("Error '{0}' occured. Arguments {1}.".format(e.message, e.args))
         except Exception as e:
             # handle any other exception
-            print "Error '{0}' occured. Arguments {1}.".format(e.message, e.args)
+            print("Error '{0}' occured. Arguments {1}.".format(e.message, e.args))
         finally:
             linkcheck_helper.write_report(test_name, assert_error, check_pages, response)
         return
@@ -62,10 +62,10 @@ class TestCyanPages(unittest.TestCase):
                 assert_error = True
             except Exception as e:
                 # handle any other exception
-                print "Error '{0}' occured. Arguments {1}.".format(e.message, e.args)
+                print("Error '{0}' occured. Arguments {1}.".format(e.message, e.args))
         except Exception as e:
             # handle any other exception
-            print "Error '{0}' occured. Arguments {1}.".format(e.message, e.args)
+            print("Error '{0}' occured. Arguments {1}.".format(e.message, e.args))
         finally:
             linkcheck_helper.write_report(test_name, assert_error, api_endpoints, response)
         return
