@@ -6,14 +6,8 @@ from datetime import datetime
 from django.conf.urls import url
 import django.contrib.auth.views
 
-import views
-import description
-import map
-import lakecomparison
-import dashboard
-import algorithms
-import references
-import cyan_rest
+from . import views, description, map, lakecomparison
+from . import dashboard, algorithms, references, cyan_rest
 
 # if settings.IS_PUBLIC:
 urlpatterns = [
