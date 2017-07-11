@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 import os
 from django.conf import settings
-import links_left
+from . import links_left
 from cyan_app import views
 
 
