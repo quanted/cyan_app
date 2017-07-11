@@ -6,7 +6,7 @@ from datetime import datetime
 from django.conf.urls import url
 import django.contrib.auth.views
 from . import views, description, map, lakecomparison
-from . import dashboard, algorithms, references, cyan_rest
+from . import dashboard, algorithms, references, cyan_rest, cyandata_restapi
 
 
 # if settings.IS_PUBLIC:
