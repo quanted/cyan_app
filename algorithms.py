@@ -3,7 +3,9 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 import os
 from django.conf import settings
-from . import links_left
+
+from .links_left import ordered_list
+
 from cyan_app import views
 
 
@@ -22,7 +24,7 @@ def algorithm_page(request, model='cyan', header='none'):
 
     html += render_to_string('04ubertext_end_drupal.html', {})
 
-    html += links_left.ordered_list(model, 'algorithms')
+    html += ordered_list(model, 'algorithms')
     html += render_to_string('10epa_drupal_footer.html', {})
 
 
