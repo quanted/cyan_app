@@ -22,6 +22,7 @@ urlpatterns = [
 
     url(r'^rest/api/v1/(?P<state>\w+)$', cyandata_restapi.getcyan_state_data, {'model': 'cyan'}),
     url(r'^rest/api/v1/(?P<state>\w+)/lakes/$', cyandata_restapi.getcyan_state_lake_data, {'model': 'cyan'}),
+    url(r'^rest/api/v1/lake/(?P<lake>\w+)$', cyandata_restapi.getcyan_lake_data, {'model': 'cyan'}),
 
     # url(r'^api$', rest.rest_page, {'model': 'cyan'}),
     # url(r'^swag$', views.getSwaggerJsonContent)
