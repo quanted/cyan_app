@@ -3,7 +3,9 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 import os
 from django.conf import settings
+
 from .links_left import ordered_list
+
 from cyan_app import views
 
 

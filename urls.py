@@ -5,9 +5,9 @@ Definition of urls for qed_cyan.
 from datetime import datetime
 from django.conf.urls import url
 import django.contrib.auth.views
-
 from . import views, description, map, lakecomparison
-from . import dashboard, algorithms, references, cyan_rest
+from . import dashboard, algorithms, references, cyan_rest, cyandata_restapi
+
 
 # if settings.IS_PUBLIC:
 urlpatterns = [
@@ -19,6 +19,10 @@ urlpatterns = [
     url(r'^dashboard$', dashboard.dashboard_page, {'model': 'cyan'}),
     url(r'^algorithms$', algorithms.algorithm_page, {'model': 'cyan'}),
     url(r'^references$', references.references_page, {'model': 'cyan'}),
+
+    url(r'^rest/api/v1/(?P<state>\w+)$', cyandata_restapi.getcyan_state_data, {'model': 'cyan'}),
+    url(r'^rest/api/v1/(?P<state>\w+)/lakes/$', cyandata_restapi.getcyan_state_lake_data, {'model': 'cyan'}),
+    url(r'^rest/api/v1/lake/(?P<lake>\w+)$', cyandata_restapi.getcyan_lake_data, {'model': 'cyan'}),
 
     # url(r'^api$', rest.rest_page, {'model': 'cyan'}),
     # url(r'^swag$', views.getSwaggerJsonContent)
