@@ -28,7 +28,8 @@ urlpatterns = [
     # url(r'^swag$', views.getSwaggerJsonContent)
 
     # rest urls
-    url(r'^rest/location/data$', cyan_rest.get_location_data)
+    url(r'^rest/location/data$', cyan_rest.get_location_data),
+    url(r'^.*/$', description.description_page, {'model': 'cyan'})
 ]
 # else:
 #     urlpatterns = [

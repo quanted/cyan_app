@@ -101,8 +101,10 @@ def getcyan_state_data(request, model='', state='', header=''):
             "extentHigh": date_data["sum(high_extent)"]
         }
         # TODO: extents are currently whole numbers, may need to change to a decimal percentage.
+
     metadata = base_metadata["metaInfo"]
     metadata["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/(state)"
+    metadata["timestamp"] = str(datetime.utcnow()) + "Z"
     data = {"metaInfo": metadata, "inputs": state, "outputs": {
         "stateInfo":
             {
@@ -189,6 +191,7 @@ def getcyan_state_lake_data(request, model='', state='', header=''):
         cyan_lakes[comid] = {"lake_metadata": lake_data[0], "cyandata": cyan_data}
     metadata = base_metadata["metaInfo"]
     metadata["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/(state)/lakes"
+    metadata["timestamp"] = str(datetime.utcnow()) + "Z"
     data = {"metaInfo": metadata, "inputs": state, "outputs": {
                 "stateInfo":
                 {
@@ -223,8 +226,12 @@ def getcyan_lake_data(request, model='', lake='', header=''):
     # Place state variable into a tuple before inserting into query request, prevents sql vulnerability.
     if lake.isnumeric():
         query = "SELECT * FROM lakes WHERE comid=?"
+        c.execute(query, (lake,))
+        lake_test = c.fetchall()
+        if len(lake_test) == 0:
+            return JsonResponse({"error": "comid error: No lakes found with the given comid. Provided comid = " + lake})
     else:
-        return JsonResponse({"error": "argument error: state value provided was not valid, please provide a valid state"
+        return JsonResponse({"error": "argument error: comid value provided was not valid, please provide a comid"
                                       " abbreviation. Provided value = " + lake})
     # lake in states
     c.execute("SELECT state_abbr FROM state_lakes WHERE comid=?", (lake,))
@@ -264,6 +271,7 @@ def getcyan_lake_data(request, model='', lake='', header=''):
         }
     metadata = base_metadata["metaInfo"]
     metadata["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/lake/(comid)"
+    metadata["timestamp"] = str(datetime.utcnow()) + "Z"
     data = {"metaInfo": metadata, "inputs": lake, "outputs": {
                 "lakeInfo":
                 {
