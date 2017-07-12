@@ -102,7 +102,7 @@ def getcyan_state_data(request, model='', state='', header=''):
         }
         # TODO: extents are currently whole numbers, may need to change to a decimal percentage.
     metadata = base_metadata["metaInfo"]
-    metadata["metaInfo"]["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/(state)"
+    metadata["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/(state)"
     data = {"metaInfo": metadata, "inputs": state, "outputs": {
         "stateInfo":
             {
@@ -162,16 +162,31 @@ def getcyan_state_lake_data(request, model='', state='', header=''):
 
     cyan_lakes = {}
     c.execute("SELECT comid FROM state_lakes WHERE state_abbr=?", (state,))
-
+    td = timedelta(days=6)
     for lake in c.fetchall():
         comid = lake['comid']
         c.execute("SELECT * FROM lakes WHERE comid=?", (comid,))
         lake_data = c.fetchall()
-        c.execute(
-            "SELECT start_date, high_extent, moderate_extent, low_extent, max, mean, min FROM cyan_lakes WHERE comid=?",
-            (comid,))
-        cyan_data = c.fetchall()
-        cyan_lakes[comid] = {"lake_metadata": lake_data[0], "cyandata": cyan_data[0]}
+        c.execute("SELECT DISTINCT start_date FROM cyan_lakes WHERE comid=?", (comid,))
+        dates = c.fetchall()
+        cyan_data = {}
+        for date in dates:
+            d = date['start_date']
+            query = 'SELECT high_extent, moderate_extent, low_extent, max, mean, min ' \
+                    'FROM cyan_lakes WHERE comid =' + str(comid) + ' AND cyan_lakes.start_date =?'
+            c.execute(query, (d,))
+            date_data = c.fetchall()[0]
+            cyan_data[(d[:10])] = {
+                "start-date": d[:10],
+                "end-date": (datetime.strptime(d[:10], '%Y-%m-%d') + td).strftime('%Y-%m-%d'),
+                "maxCI": date_data["max"],
+                "meanCI": date_data["mean"],
+                "minCI": date_data["min"],
+                "extentLow": date_data["low_extent"],
+                "extentModerate": date_data["moderate_extent"],
+                "extentHigh": date_data["high_extent"]
+            }
+        cyan_lakes[comid] = {"lake_metadata": lake_data[0], "cyandata": cyan_data}
     metadata = base_metadata["metaInfo"]
     metadata["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/(state)/lakes"
     data = {"metaInfo": metadata, "inputs": state, "outputs": {
