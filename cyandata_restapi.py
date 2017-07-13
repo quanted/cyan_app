@@ -39,6 +39,7 @@ def getcyan_state_data(request, model='', state='', header=''):
     """
     Rest endpoint for retrieving cyan data based on a specified state, aggregated data for the whole state.
     State argument takes a state abbreviation, will be testing using state name as well.
+    URL: https://qedinternal.epa.gov/cyan/rest/api/v1/(state)
     :param request: Default request.
     :param model: Cyan
     :param state: Endpoint argument variable, state name abbreviation.
@@ -84,6 +85,8 @@ def getcyan_state_data(request, model='', state='', header=''):
     cyan_data = {}
     for date in dates:
         d = date['start_date']
+        if d == None:
+            break
         query = 'SELECT sum(high_extent), sum(moderate_extent), sum(low_extent), max(max), avg(mean), min(min) ' \
                 'FROM cyan_lakes INNER JOIN state_lakes ' \
                 'WHERE cyan_lakes.comid = state_lakes.comid AND state_lakes.state_abbr="' + state + \
@@ -96,9 +99,9 @@ def getcyan_state_data(request, model='', state='', header=''):
             "maxCI": date_data["max(max)"],
             "meanCI": date_data["avg(mean)"],
             "minCI": date_data["min(min)"],
-            "extentLow": date_data["sum(low_extent)"],
-            "extentModerate": date_data["sum(moderate_extent)"],
-            "extentHigh": date_data["sum(high_extent)"]
+            "extentLow": float(date_data["sum(low_extent)"]) * 300,
+            "extentModerate": float(date_data["sum(moderate_extent)"]) * 300,
+            "extentHigh": float(date_data["sum(high_extent)"]) * 300
         }
         # TODO: extents are currently whole numbers, may need to change to a decimal percentage.
 
@@ -125,6 +128,7 @@ def getcyan_state_lake_data(request, model='', state='', header=''):
     """
     Rest endpoint for retrieving cyan data based on a specified state, data for each lake.
     State argument takes a state abbreviation, will be testing using state name as well.
+    URL: https://qedinternal.epa.gov/cyan/rest/api/v1/(state)/lakes
     :param request: Default request.
     :param model: Cyan
     :param state: Endpoint argument variable, state abbreviation.
@@ -174,6 +178,8 @@ def getcyan_state_lake_data(request, model='', state='', header=''):
         cyan_data = {}
         for date in dates:
             d = date['start_date']
+            if d == None:
+                break
             query = 'SELECT high_extent, moderate_extent, low_extent, max, mean, min ' \
                     'FROM cyan_lakes WHERE comid =' + str(comid) + ' AND cyan_lakes.start_date =?'
             c.execute(query, (d,))
@@ -184,9 +190,9 @@ def getcyan_state_lake_data(request, model='', state='', header=''):
                 "maxCI": date_data["max"],
                 "meanCI": date_data["mean"],
                 "minCI": date_data["min"],
-                "extentLow": date_data["low_extent"],
-                "extentModerate": date_data["moderate_extent"],
-                "extentHigh": date_data["high_extent"]
+                "extentLow": float(date_data["low_extent"]) * 300,
+                "extentModerate": float(date_data["moderate_extent"]) * 300,
+                "extentHigh": float(date_data["high_extent"]) * 300
             }
         cyan_lakes[comid] = {"lake_metadata": lake_data[0], "cyandata": cyan_data}
     metadata = base_metadata["metaInfo"]
@@ -212,6 +218,7 @@ def getcyan_lake_data(request, model='', lake='', header=''):
     """
     Rest endpoint for retrieving cyan data for a specified  lake.
     State argument takes a state abbreviation, will be testing using state name as well.
+    URL: https://qedinternal.epa.gov/cyan/rest/api/v1/lake/(comid)
     :param request: Default request.
     :param model: Cyan
     :param lake: Endpoint argument variable, lake comid.
@@ -255,6 +262,8 @@ def getcyan_lake_data(request, model='', lake='', header=''):
     cyan_data = {}
     for date in dates:
         d = date['start_date']
+        if d == None:
+            break
         query = 'SELECT high_extent, moderate_extent, low_extent, max, mean, min ' \
                 'FROM cyan_lakes WHERE comid =' + lake + ' AND cyan_lakes.start_date =?'
         c.execute(query, (d,))
@@ -265,9 +274,9 @@ def getcyan_lake_data(request, model='', lake='', header=''):
             "maxCI": date_data["max"],
             "meanCI": date_data["mean"],
             "minCI": date_data["min"],
-            "extentLow": date_data["low_extent"],
-            "extentModerate": date_data["moderate_extent"],
-            "extentHigh": date_data["high_extent"]
+            "extentLow": float(date_data["low_extent"]) * 300,
+            "extentModerate": float(date_data["moderate_extent"]) * 300,
+            "extentHigh": float(date_data["high_extent"]) * 300
         }
     metadata = base_metadata["metaInfo"]
     metadata["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/lake/(comid)"
