@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 import sqlite3
 import os
+import time
 from datetime import datetime, timedelta
 
 base_metadata = {
@@ -46,6 +47,7 @@ def getcyan_state_data(request, model='', state='', header=''):
     :param header: Default header.
     :return: JSON string
     """
+    start = time.clock()
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(BASE_DIR, "cyan.db")
     db_con = sqlite3.connect(db_path)
@@ -86,7 +88,7 @@ def getcyan_state_data(request, model='', state='', header=''):
     for date in dates:
         d = date['start_date']
         if d == None:
-            break
+            continue
         query = 'SELECT sum(high_extent), sum(moderate_extent), sum(low_extent), max(max), avg(mean), min(min) ' \
                 'FROM cyan_lakes INNER JOIN state_lakes ' \
                 'WHERE cyan_lakes.comid = state_lakes.comid AND state_lakes.state_abbr="' + state + \
@@ -103,11 +105,11 @@ def getcyan_state_data(request, model='', state='', header=''):
             "extentModerate": float(date_data["sum(moderate_extent)"]) * 300,
             "extentHigh": float(date_data["sum(high_extent)"]) * 300
         }
-        # TODO: extents are currently whole numbers, may need to change to a decimal percentage.
-
     metadata = base_metadata["metaInfo"]
     metadata["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/(state)"
     metadata["timestamp"] = str(datetime.utcnow()) + "Z"
+    end = time.clock()
+    metadata["query_time"] = end - start
     data = {"metaInfo": metadata, "inputs": state, "outputs": {
         "stateInfo":
             {
@@ -135,6 +137,7 @@ def getcyan_state_lake_data(request, model='', state='', header=''):
     :param header: Default header.
     :return: JSON string.
     """
+    start = time.clock()
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(BASE_DIR, "cyan.db")
     db_con = sqlite3.connect(db_path)
@@ -175,11 +178,13 @@ def getcyan_state_lake_data(request, model='', state='', header=''):
         lake_data = c.fetchall()
         c.execute("SELECT DISTINCT start_date FROM cyan_lakes WHERE comid=?", (comid,))
         dates = c.fetchall()
+        if len(dates) == 0:
+            continue
         cyan_data = {}
         for date in dates:
             d = date['start_date']
             if d == None:
-                break
+                continue
             query = 'SELECT high_extent, moderate_extent, low_extent, max, mean, min ' \
                     'FROM cyan_lakes WHERE comid =' + str(comid) + ' AND cyan_lakes.start_date =?'
             c.execute(query, (d,))
@@ -198,17 +203,162 @@ def getcyan_state_lake_data(request, model='', state='', header=''):
     metadata = base_metadata["metaInfo"]
     metadata["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/(state)/lakes"
     metadata["timestamp"] = str(datetime.utcnow()) + "Z"
+    end = time.clock()
+    metadata["query_time"] = end - start
     data = {"metaInfo": metadata, "inputs": state, "outputs": {
-                "stateInfo":
-                {
-                    "state": state_name[0]["state_name"],
-                    "numbLakes": nLakes[0]['count(comid)'],
-                    "stateArea": float(state_area[0]['sqmi']) * 2.58999,
-                    "lakeArea": lake_area[0]['sum(areasqkm)'],
-                    "meanCI": meanCI[0]['avg(mean)']
-                },
-                "lakeData": cyan_lakes
+        "stateInfo":
+            {
+                "state": state_name[0]["state_name"],
+                "numbLakes": nLakes[0]['count(comid)'],
+                "stateArea": float(state_area[0]['sqmi']) * 2.58999,
+                "lakeArea": lake_area[0]['sum(areasqkm)'],
+                "meanCI": meanCI[0]['avg(mean)']
+            },
+        "lakeData": cyan_lakes
+    }
             }
+    return JsonResponse(data)
+
+
+@require_GET
+def getcyan_state_lake_info(request, model='', state='', header=''):
+    """
+        Rest endpoint for retrieving cyan data statistics based on a specified state, data for each lake.
+        State argument takes a state abbreviation, will be testing using state name as well.
+        URL: https://qedinternal.epa.gov/cyan/rest/api/v1/(state)/lakes/info
+        :param request: Default request.
+        :param model: Cyan
+        :param state: Endpoint argument variable, state abbreviation.
+        :param header: Default header.
+        :return: JSON string.
+        """
+    start = time.clock()
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(BASE_DIR, "cyan.db")
+    db_con = sqlite3.connect(db_path)
+    db_con.row_factory = dict_factory
+    c = db_con.cursor()
+    # Place state variable into a tuple before inserting into query request, prevents sql vulnerability.
+    if len(state) != 2:
+        return JsonResponse({"error": "argument error: state value provided was not valid, please provide a valid state"
+                                      " abbreviation. Provided value = " + state})
+    # state name
+    c.execute("SELECT state_name, sqmi FROM states WHERE state_abbr=?", (state,))
+    state_data = c.fetchall()
+
+    # number of lakes in the state
+    c.execute("SELECT count(comid) FROM state_lakes WHERE state_abbr=?", (state,))
+    nLakes = c.fetchall()
+
+    # area of the state
+    # c.execute("SELECT sqmi FROM states WHERE state_abbr=?", (state,))
+    # state_area = c.fetchall()
+
+    # lake area in state
+    c.execute("SELECT sum(areasqkm) FROM lakes INNER JOIN state_lakes WHERE lakes.comid = state_lakes.comid"
+              " AND state_lakes.state_abbr=?", (state,))
+    lakes_area = c.fetchall()
+
+    # Mean CI for the state
+    c.execute("SELECT avg(mean) FROM cyan_lakes INNER JOIN state_lakes WHERE cyan_lakes.comid = state_lakes.comid"
+              " AND state_lakes.state_abbr=?", (state,))
+    meanCI = c.fetchall()
+
+    cyan_lakes = {}
+    c.execute("SELECT comid FROM state_lakes WHERE state_abbr=?", (state,))
+    td = timedelta(days=6)
+    cyan_data = {}
+    for lake in c.fetchall():
+        comid = lake['comid']
+        # lake in states
+        c.execute("SELECT state_abbr FROM state_lakes WHERE comid=?", (comid,))
+        states = c.fetchall()
+        stateList = []
+        for state in states:
+            stateList.append(state["state_abbr"])
+        # area of lake
+        c.execute("SELECT areasqkm, gnis_name FROM lakes WHERE comid=?", (comid,))
+        lake_data = c.fetchall()
+
+        # name of lake
+        # c.execute("SELECT gnis_name FROM lakes WHERE comid=?", (comid,))
+        # lake_name = c.fetchall()
+
+        c.execute("SELECT DISTINCT start_date from cyan_lakes WHERE comid=?", (comid,))
+        dates = c.fetchall()
+        nDates = len(dates)
+        if len(dates) == 0:
+            continue
+        start_date = dates[0]
+        end_date = dates[nDates - 1]
+
+        query = 'SELECT max(max), avg(mean), min(min) ' \
+                'FROM cyan_lakes WHERE comid =?'
+        c.execute(query, (comid,))
+        cI_data = c.fetchall()[0]
+
+        query = 'SELECT DISTINCT start_date, high_extent ' \
+                'FROM cyan_lakes WHERE high_extent > 0 AND comid =?'
+        c.execute(query, (comid,))
+        high_extent = c.fetchall()
+
+        query = 'SELECT DISTINCT start_date, moderate_extent ' \
+                'FROM cyan_lakes WHERE moderate_extent > 0 AND comid =?'
+        c.execute(query, (comid,))
+        moderate_extent = c.fetchall()
+
+        query = 'SELECT DISTINCT start_date, low_extent ' \
+                'FROM cyan_lakes WHERE low_extent > 0 AND comid =?'
+        c.execute(query, (comid,))
+        low_extent = c.fetchall()
+
+        query = 'SELECT max(high_extent), avg(high_extent), max(moderate_extent), avg(moderate_extent), ' \
+                'max(low_extent), avg(low_extent) FROM cyan_lakes where comid=?'
+        c.execute(query, (comid,))
+        extent = c.fetchall()[0]
+
+
+        # states.values() get values from list of dictionary.
+        cyan_data[comid] = {
+            "lake_info": {
+                "lakeCOMID": comid,
+                "GNISname": lake_data[0]["gnis_name"],
+                "lakeArea": lake_data[0]["areasqkm"],
+                "state": stateList,
+                "start_date": start_date["start_date"],
+                "end_date": end_date["start_date"]
+            },
+            "lake_cyan_info": {
+                "maxCI": cI_data["max(max)"],
+                "meanCI": cI_data["avg(mean)"],
+                "minCI": cI_data["min(min)"],
+                "freqHigh": len(high_extent) / nDates,
+                "freqModerate": len(moderate_extent) / nDates,
+                "freqLow": len(low_extent) / nDates,
+                "maxHighExtent": float(extent["max(high_extent)"]) * 300,
+                "meanHighExtent": float(extent["avg(high_extent)"]) * 300,
+                "maxModerateExtent": float(extent["max(moderate_extent)"]) * 300,
+                "meanModerateExtent": float(extent["avg(moderate_extent)"]) * 300,
+                "maxLowExtent": float(extent["max(low_extent)"]) * 300,
+                "meanLowExtent": float(extent["avg(low_extent)"]) * 300
+            }
+        }
+    metadata = base_metadata["metaInfo"]
+    metadata["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/(state)/lakes/info"
+    metadata["timestamp"] = str(datetime.utcnow()) + "Z"
+    end = time.clock()
+    metadata["query_time"] = end - start
+    data = {"metaInfo": metadata, "inputs": state, "outputs": {
+        "stateInfo":
+            {
+                "state": state_data[0]["state_name"],
+                "numbLakes": nLakes[0]['count(comid)'],
+                "stateArea": float(state_data[0]['sqmi']) * 2.58999,
+                "lakeArea": lakes_area[0]['sum(areasqkm)'],
+                "meanCI": meanCI[0]['avg(mean)']
+            },
+        "lakeData": cyan_data
+    }
             }
     return JsonResponse(data)
 
@@ -225,6 +375,7 @@ def getcyan_lake_data(request, model='', lake='', header=''):
     :param header: Default header.
     :return: JSON string.
     """
+    start = time.clock()
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(BASE_DIR, "cyan.db")
     db_con = sqlite3.connect(db_path)
@@ -263,7 +414,7 @@ def getcyan_lake_data(request, model='', lake='', header=''):
     for date in dates:
         d = date['start_date']
         if d == None:
-            break
+            continue
         query = 'SELECT high_extent, moderate_extent, low_extent, max, mean, min ' \
                 'FROM cyan_lakes WHERE comid =' + lake + ' AND cyan_lakes.start_date =?'
         c.execute(query, (d,))
@@ -281,17 +432,229 @@ def getcyan_lake_data(request, model='', lake='', header=''):
     metadata = base_metadata["metaInfo"]
     metadata["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/lake/(comid)"
     metadata["timestamp"] = str(datetime.utcnow()) + "Z"
+    end = time.clock()
+    metadata["query_time"] = end - start
     data = {"metaInfo": metadata, "inputs": lake, "outputs": {
-                "lakeInfo":
-                {
-                    "lakeCOMID": lake,
-                    "GNISname": lake_name[0]['gnis_name'],
-                    "lakeArea": lake_area[0]['areasqkm'],
-                    "state": states[0]['state_abbr']
-                },
-                "lakeData": cyan_data
+        "lakeInfo":
+            {
+                "lakeCOMID": lake,
+                "GNISname": lake_name[0]['gnis_name'],
+                "lakeArea": lake_area[0]['areasqkm'],
+                "state": states[0]['state_abbr']
+            },
+        "lakeData": cyan_data
+    }
             }
+    return JsonResponse(data)
+
+
+@require_GET
+def getcyan_lake_info(request, model='', lake='', header=''):
+    """
+    Rest endpoint for retrieving cyan data statistics based on a specified lake comid.
+    URL: https://qedinternal.epa.gov/cyan/rest/api/v1/(state)/lakes/info
+    :param request: Default request.
+    :param model: Cyan
+    :param lake: Endpoint argument variable, lake comid.
+    :param header: Default header.
+    :return: JSON string.
+    """
+    start = time.clock()
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(BASE_DIR, "cyan.db")
+    db_con = sqlite3.connect(db_path)
+    db_con.row_factory = dict_factory
+    c = db_con.cursor()
+    # Place state variable into a tuple before inserting into query request, prevents sql vulnerability.
+    if lake.isnumeric():
+        query = "SELECT * FROM lakes WHERE comid=?"
+        c.execute(query, (lake,))
+        lake_test = c.fetchall()
+        if len(lake_test) == 0:
+            return JsonResponse({"error": "comid error: No lakes found with the given comid. Provided comid = " + lake})
+    else:
+        return JsonResponse({"error": "argument error: comid value provided was not valid, please provide a comid"
+                                      " abbreviation. Provided value = " + lake})
+    cyan_data = {}
+
+    # lake in states
+    c.execute("SELECT state_abbr FROM state_lakes WHERE comid=?", (lake,))
+    states = c.fetchall()
+    stateList = []
+    for state in states:
+        stateList.append(state["state_abbr"])
+
+    # area of lake
+    c.execute("SELECT areasqkm, gnis_name FROM lakes WHERE comid=?", (lake,))
+    lake_data = c.fetchall()
+
+    c.execute("SELECT DISTINCT start_date from cyan_lakes WHERE comid=?", (lake,))
+    dates = c.fetchall()
+    nDates = len(dates)
+    start_date = dates[0]
+    end_date = dates[nDates - 1]
+
+    query = 'SELECT max(max), avg(mean), min(min) ' \
+            'FROM cyan_lakes WHERE comid =?'
+    c.execute(query, (lake,))
+    cI_data = c.fetchall()[0]
+
+    query = 'SELECT DISTINCT start_date, high_extent ' \
+            'FROM cyan_lakes WHERE high_extent > 0 AND comid =?'
+    c.execute(query, (lake,))
+    high_extent = c.fetchall()
+
+    query = 'SELECT DISTINCT start_date, moderate_extent ' \
+            'FROM cyan_lakes WHERE moderate_extent > 0 AND comid =?'
+    c.execute(query, (lake,))
+    moderate_extent = c.fetchall()
+
+    query = 'SELECT DISTINCT start_date, low_extent ' \
+            'FROM cyan_lakes WHERE low_extent > 0 AND comid =?'
+    c.execute(query, (lake,))
+    low_extent = c.fetchall()
+
+    query = 'SELECT max(high_extent), avg(high_extent), max(moderate_extent), avg(moderate_extent), ' \
+            'max(low_extent), avg(low_extent) FROM cyan_lakes where comid=?'
+    c.execute(query, (lake,))
+    extent = c.fetchall()[0]
+
+    # states.values() get values from list of dictionary.
+    cyan_data[lake] = {
+        "lake_info": {
+            "lakeCOMID": lake,
+            "GNISname": lake_data[0]["gnis_name"],
+            "lakeArea": lake_data[0]["areasqkm"],
+            "state": stateList,
+            "start_date": start_date["start_date"],
+            "end_date": end_date["start_date"]
+        },
+        "lake_cyan_info": {
+            "maxCI": cI_data["max(max)"],
+            "meanCI": cI_data["avg(mean)"],
+            "minCI": cI_data["min(min)"],
+            "freqHigh": len(high_extent) / nDates,
+            "freqModerate": len(moderate_extent) / nDates,
+            "freqLow": len(low_extent) / nDates,
+            "maxHighExtent": float(extent["max(high_extent)"]) * 300,
+            "meanHighExtent": float(extent["avg(high_extent)"]) * 300,
+            "maxModerateExtent": float(extent["max(moderate_extent)"]) * 300,
+            "meanModerateExtent": float(extent["avg(moderate_extent)"]) * 300,
+            "maxLowExtent": float(extent["max(low_extent)"]) * 300,
+            "meanLowExtent": float(extent["avg(low_extent)"]) * 300
+        }
+    }
+    metadata = base_metadata["metaInfo"]
+    metadata["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/lake/(comid)/info"
+    metadata["timestamp"] = str(datetime.utcnow()) + "Z"
+    end = time.clock()
+    metadata["query_time"] = end - start
+    data = {"metaInfo": metadata, "inputs": lake, "outputs": {
+        "lakeData": cyan_data
+    }
             }
+    return JsonResponse(data)
+
+
+@require_GET
+def getcyan_all_lake_info(request, model='', header=''):
+    """
+    Rest endpoint for retrieving cyan data statistics based on a specified lake comid.
+    URL: https://qedinternal.epa.gov/cyan/rest/api/v1/lakes/info
+    :param request: Default request.
+    :param model: Cyan
+    :param header: Default header.
+    :return: JSON string.
+    """
+    start = time.clock()
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(BASE_DIR, "cyan.db")
+    db_con = sqlite3.connect(db_path)
+    db_con.row_factory = dict_factory
+    c = db_con.cursor()
+
+    cyan_data = {}
+
+    c.execute("SELECT comid FROM lakes")
+    lakes = c.fetchall()
+
+    for lake in lakes:
+        # lake in states
+        comid = lake["comid"]
+        c.execute("SELECT state_abbr FROM state_lakes WHERE comid=?", (comid,))
+        states = c.fetchall()
+        stateList = []
+        for state in states:
+            stateList.append(state["state_abbr"])
+
+        # area of lake
+        c.execute("SELECT areasqkm, gnis_name FROM lakes WHERE comid=?", (comid,))
+        lake_data = c.fetchall()
+
+        c.execute("SELECT DISTINCT start_date from cyan_lakes WHERE comid=?", (comid,))
+        dates = c.fetchall()
+        nDates = len(dates)
+        if len(dates) == 0:
+            continue
+        start_date = dates[0]
+        end_date = dates[nDates - 1]
+
+        query = 'SELECT max(max), avg(mean), min(min) ' \
+                'FROM cyan_lakes WHERE comid =?'
+        c.execute(query, (comid,))
+        cI_data = c.fetchall()[0]
+
+        query = 'SELECT DISTINCT start_date, high_extent ' \
+                'FROM cyan_lakes WHERE high_extent > 0 AND comid =?'
+        c.execute(query, (comid,))
+        high_extent = c.fetchall()
+
+        query = 'SELECT DISTINCT start_date, moderate_extent ' \
+                'FROM cyan_lakes WHERE moderate_extent > 0 AND comid =?'
+        c.execute(query, (comid,))
+        moderate_extent = c.fetchall()
+
+        query = 'SELECT DISTINCT start_date, low_extent ' \
+                'FROM cyan_lakes WHERE low_extent > 0 AND comid =?'
+        c.execute(query, (comid,))
+        low_extent = c.fetchall()
+
+        query = 'SELECT max(high_extent), avg(high_extent), max(moderate_extent), avg(moderate_extent), ' \
+                'max(low_extent), avg(low_extent) FROM cyan_lakes where comid=?'
+        c.execute(query, (comid,))
+        extent = c.fetchall()[0]
+
+        # states.values() get values from list of dictionary.
+        cyan_data[comid] = {
+            "lake_info": {
+                "lakeCOMID": comid,
+                "GNISname": lake_data[0]["gnis_name"],
+                "lakeArea": lake_data[0]["areasqkm"],
+                "state": stateList,
+                "start_date": start_date["start_date"],
+                "end_date": end_date["start_date"]
+            },
+            "lake_cyan_info": {
+                "maxCI": cI_data["max(max)"],
+                "meanCI": cI_data["avg(mean)"],
+                "minCI": cI_data["min(min)"],
+                "freqHigh": len(high_extent) / nDates,
+                "freqModerate": len(moderate_extent) / nDates,
+                "freqLow": len(low_extent) / nDates,
+                "maxHighExtent": float(extent["max(high_extent)"]) * 300,
+                "meanHighExtent": float(extent["avg(high_extent)"]) * 300,
+                "maxModerateExtent": float(extent["max(moderate_extent)"]) * 300,
+                "meanModerateExtent": float(extent["avg(moderate_extent)"]) * 300,
+                "maxLowExtent": float(extent["max(low_extent)"]) * 300,
+                "meanLowExtent": float(extent["avg(low_extent)"]) * 300
+            }
+        }
+    metadata = base_metadata["metaInfo"]
+    metadata["url"]["href"] = "https://qedinternal.epa.gov/cyan/rest/api/v1/lakes/info"
+    metadata["timestamp"] = str(datetime.utcnow()) + "Z"
+    end = time.clock()
+    metadata["query_time"] = end - start
+    data = {"metaInfo": metadata, "outputs": {"lakeData": cyan_data}}
     return JsonResponse(data)
 
 
