@@ -21,14 +21,27 @@ urlpatterns = [
     url(r'^references$', references.references_page, {'model': 'cyan'}),
 
     url(r'^rest/api/v1/(?P<state>\w+)$', cyandata_restapi.getcyan_state_data, {'model': 'cyan'}),
-    url(r'^rest/api/v1/(?P<state>\w+)/lakes/$', cyandata_restapi.getcyan_state_lake_data, {'model': 'cyan'}),
+    url(r'^rest/api/v1/(?P<state>\w+)/(?P<year>\d{4})$', cyandata_restapi.getcyan_state_data_yearly, {'model': 'cyan'}),
+    url(r'^rest/api/v1/(?P<state>\w+)/lakes$', cyandata_restapi.getcyan_state_lake_data, {'model': 'cyan'}),
+    url(r'^rest/api/v1/(?P<state>\w+)/lakes/(?P<year>\d{4})$', cyandata_restapi.getcyan_state_lake_data_yearly, {'model': 'cyan'}),
+    url(r'^rest/api/v1/(?P<state>\w+)/lakes/info$', cyandata_restapi.getcyan_state_lake_info, {'model': 'cyan'}),
+    url(r'^rest/api/v1/(?P<state>\w+)/lakes/info/(?P<year>\d{4})$', cyandata_restapi.getcyan_state_lake_info_yearly,
+        {'model': 'cyan'}),
     url(r'^rest/api/v1/lake/(?P<lake>\w+)$', cyandata_restapi.getcyan_lake_data, {'model': 'cyan'}),
+    url(r'^rest/api/v1/lake/(?P<lake>\w+)/(?P<year>\d{4})$', cyandata_restapi.getcyan_lake_data_yearly, {'model': 'cyan'}),
+    url(r'^rest/api/v1/lake/(?P<lake>\w+)/info$', cyandata_restapi.getcyan_lake_info, {'model': 'cyan'}),
+    url(r'^rest/api/v1/lake/(?P<lake>\w+)/info/(?P<year>\d{4})$', cyandata_restapi.getcyan_lake_info_yearly, {'model': 'cyan'}),
+    # url(r'^rest/api/v1/lakes$', cyandata_restapi.getcyan_all_lake_data, {'model': 'cyan'}),
+    url(r'^rest/api/v1/lakes/info$', cyandata_restapi.getcyan_all_lake_info, {'model': 'cyan'}),
+    url(r'^rest/api/v1/lakes/info/(?P<year>\d{4})$', cyandata_restapi.getcyan_all_lake_info_yearly,
+        {'model': 'cyan'}),
 
     # url(r'^api$', rest.rest_page, {'model': 'cyan'}),
     # url(r'^swag$', views.getSwaggerJsonContent)
 
     # rest urls
-    url(r'^rest/location/data$', cyan_rest.get_location_data)
+    url(r'^rest/location/data$', cyan_rest.get_location_data),
+    url(r'^.*/$', description.description_page, {'model': 'cyan'})
 ]
 # else:
 #     urlpatterns = [
