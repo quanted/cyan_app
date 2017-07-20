@@ -36,7 +36,17 @@ base_metadata = {
 
 
 @require_GET
-def getcyan_state_data(request, model='', state='', header=''):
+def getcyan_state_data_yearly(request, model='', state='', year='', header=''):
+
+    if len(year) != 4:
+        return JsonResponse({"error": "argument error: year value provided was not valid, please provide a valid year."
+                                      " Provided value = " + year})
+    y_query = " WHERE start_date LIKE '%" + year + "%'"
+    return getcyan_state_data(request, model, state, y_query, header)
+
+
+@require_GET
+def getcyan_state_data(request, model='', state='', yearly='', header=''):
     """
     Rest endpoint for retrieving cyan data based on a specified state, aggregated data for the whole state.
     State argument takes a state abbreviation, will be testing using state name as well.
@@ -57,17 +67,13 @@ def getcyan_state_data(request, model='', state='', header=''):
     if len(state) != 2:
         return JsonResponse({"error": "argument error: state value provided was not valid, please provide a valid state"
                                       " abbreviation. Provided value = " + state})
-    # state name
-    c.execute("SELECT state_name FROM states WHERE state_abbr=?", (state,))
-    state_name = c.fetchall()
+    # state name and area
+    c.execute("SELECT state_name, sqmi FROM states WHERE state_abbr=?", (state,))
+    state_info = c.fetchall()
 
     # number of lakes in the state
     c.execute("SELECT count(comid) FROM state_lakes WHERE state_abbr=?", (state,))
     nLakes = c.fetchall()
-
-    # area of the state
-    c.execute("SELECT sqmi FROM states WHERE state_abbr=?", (state,))
-    state_area = c.fetchall()
 
     # lake area in state
     c.execute("SELECT sum(areasqkm) FROM lakes INNER JOIN state_lakes WHERE lakes.comid = state_lakes.comid"
@@ -82,9 +88,11 @@ def getcyan_state_data(request, model='', state='', header=''):
     # data by date
     td = timedelta(days=6)
     # state_data = c.fetchall()
-    c.execute("SELECT DISTINCT start_date FROM cyan_lakes")
+    q = "SELECT DISTINCT start_date FROM cyan_lakes " + yearly
+    c.execute(q)
     dates = c.fetchall()
     cyan_data = {}
+
     for date in dates:
         d = date['start_date']
         if d == None:
@@ -113,20 +121,30 @@ def getcyan_state_data(request, model='', state='', header=''):
     data = {"metaInfo": metadata, "inputs": state, "outputs": {
         "stateInfo":
             {
-                "state": state_name[0]["state_name"],
+                "state": state_info[0]["state_name"],
                 "numbLakes": nLakes[0]['count(comid)'],
-                "stateArea": float(state_area[0]['sqmi']) * 2.58999,
+                "stateArea": float(state_info[0]['sqmi']) * 2.58999,
                 "lakeArea": lake_area[0]['sum(areasqkm)'],
                 "meanCI": meanCI[0]['avg(mean)']
             },
         "timeseriesData": cyan_data
+        }
     }
-            }
     return JsonResponse(data)
 
 
 @require_GET
-def getcyan_state_lake_data(request, model='', state='', header=''):
+def getcyan_state_lake_data_yearly(request, model='', state='', year='', header=''):
+
+    if len(year) != 4:
+        return JsonResponse({"error": "argument error: year value provided was not valid, please provide a valid year."
+                                      " Provided value = " + year})
+    y_query = " start_date LIKE '%" + str(year) + "%' AND "
+    return getcyan_state_lake_data(request, model, state, y_query, header)
+
+
+@require_GET
+def getcyan_state_lake_data(request, model='', state='', yearly='', header=''):
     """
     Rest endpoint for retrieving cyan data based on a specified state, data for each lake.
     State argument takes a state abbreviation, will be testing using state name as well.
@@ -176,7 +194,8 @@ def getcyan_state_lake_data(request, model='', state='', header=''):
         comid = lake['comid']
         c.execute("SELECT * FROM lakes WHERE comid=?", (comid,))
         lake_data = c.fetchall()
-        c.execute("SELECT DISTINCT start_date FROM cyan_lakes WHERE comid=?", (comid,))
+        q = "SELECT DISTINCT start_date FROM cyan_lakes WHERE" + yearly + " comid=?"
+        c.execute(q, (comid,))
         dates = c.fetchall()
         if len(dates) == 0:
             continue
@@ -215,13 +234,23 @@ def getcyan_state_lake_data(request, model='', state='', header=''):
                 "meanCI": meanCI[0]['avg(mean)']
             },
         "lakeData": cyan_lakes
+        }
     }
-            }
     return JsonResponse(data)
 
 
 @require_GET
-def getcyan_state_lake_info(request, model='', state='', header=''):
+def getcyan_state_lake_info_yearly(request, model='', state='', year='', header=''):
+
+    if len(year) != 4:
+        return JsonResponse({"error": "argument error: year value provided was not valid, please provide a valid year."
+                                      " Provided value = " + year})
+    y_query = " start_date LIKE '%" + str(year) + "%' AND "
+    return getcyan_state_lake_info(request, model, state, y_query, header)
+
+
+@require_GET
+def getcyan_state_lake_info(request, model='', state='', yearly='', header=''):
     """
         Rest endpoint for retrieving cyan data statistics based on a specified state, data for each lake.
         State argument takes a state abbreviation, will be testing using state name as well.
@@ -280,11 +309,8 @@ def getcyan_state_lake_info(request, model='', state='', header=''):
         c.execute("SELECT areasqkm, gnis_name FROM lakes WHERE comid=?", (comid,))
         lake_data = c.fetchall()
 
-        # name of lake
-        # c.execute("SELECT gnis_name FROM lakes WHERE comid=?", (comid,))
-        # lake_name = c.fetchall()
-
-        c.execute("SELECT DISTINCT start_date from cyan_lakes WHERE comid=?", (comid,))
+        q = "SELECT DISTINCT start_date from cyan_lakes WHERE " + yearly + " comid=?"
+        c.execute(q, (comid,))
         dates = c.fetchall()
         nDates = len(dates)
         if len(dates) == 0:
@@ -316,7 +342,6 @@ def getcyan_state_lake_info(request, model='', state='', header=''):
                 'max(low_extent), avg(low_extent) FROM cyan_lakes where comid=?'
         c.execute(query, (comid,))
         extent = c.fetchall()[0]
-
 
         # states.values() get values from list of dictionary.
         cyan_data[comid] = {
@@ -358,13 +383,23 @@ def getcyan_state_lake_info(request, model='', state='', header=''):
                 "meanCI": meanCI[0]['avg(mean)']
             },
         "lakeData": cyan_data
+        }
     }
-            }
     return JsonResponse(data)
 
 
 @require_GET
-def getcyan_lake_data(request, model='', lake='', header=''):
+def getcyan_lake_data_yearly(request, model='', lake='', year='', header=''):
+
+    if len(year) != 4:
+        return JsonResponse({"error": "argument error: year value provided was not valid, please provide a valid year."
+                                      " Provided value = " + year})
+    y_query = " start_date LIKE '%" + str(year) + "%' AND "
+    return getcyan_lake_data(request, model, lake, y_query, header)
+
+
+@require_GET
+def getcyan_lake_data(request, model='', lake='', yearly='', header=''):
     """
     Rest endpoint for retrieving cyan data for a specified  lake.
     State argument takes a state abbreviation, will be testing using state name as well.
@@ -403,12 +438,11 @@ def getcyan_lake_data(request, model='', lake='', header=''):
     c.execute("SELECT gnis_name FROM lakes WHERE comid=?", (lake,))
     lake_name = c.fetchall()
 
-    # c.execute(query, (state,))
-
     # data by date
     td = timedelta(days=6)
     # state_data = c.fetchall()
-    c.execute("SELECT DISTINCT start_date FROM cyan_lakes WHERE comid=?", (lake,))
+    q = "SELECT DISTINCT start_date FROM cyan_lakes WHERE " + yearly + " comid=?"
+    c.execute(q, (lake,))
     dates = c.fetchall()
     cyan_data = {}
     for date in dates:
@@ -449,7 +483,17 @@ def getcyan_lake_data(request, model='', lake='', header=''):
 
 
 @require_GET
-def getcyan_lake_info(request, model='', lake='', header=''):
+def getcyan_lake_info_yearly(request, model='', lake='', year='', header=''):
+
+    if len(year) != 4:
+        return JsonResponse({"error": "argument error: year value provided was not valid, please provide a valid year."
+                                      " Provided value = " + year})
+    y_query = " start_date LIKE '%" + str(year) + "%' AND "
+    return getcyan_lake_info(request, model, lake, y_query, header)
+
+
+@require_GET
+def getcyan_lake_info(request, model='', lake='', yearly='', header=''):
     """
     Rest endpoint for retrieving cyan data statistics based on a specified lake comid.
     URL: https://qedinternal.epa.gov/cyan/rest/api/v1/(state)/lakes/info
@@ -488,34 +532,35 @@ def getcyan_lake_info(request, model='', lake='', header=''):
     c.execute("SELECT areasqkm, gnis_name FROM lakes WHERE comid=?", (lake,))
     lake_data = c.fetchall()
 
-    c.execute("SELECT DISTINCT start_date from cyan_lakes WHERE comid=?", (lake,))
+    q = "SELECT DISTINCT start_date from cyan_lakes WHERE " + yearly + " comid=?"
+    c.execute(q, (lake,))
     dates = c.fetchall()
     nDates = len(dates)
     start_date = dates[0]
     end_date = dates[nDates - 1]
 
     query = 'SELECT max(max), avg(mean), min(min) ' \
-            'FROM cyan_lakes WHERE comid =?'
+            'FROM cyan_lakes WHERE ' + yearly + ' comid =?'
     c.execute(query, (lake,))
     cI_data = c.fetchall()[0]
 
     query = 'SELECT DISTINCT start_date, high_extent ' \
-            'FROM cyan_lakes WHERE high_extent > 0 AND comid =?'
+            'FROM cyan_lakes WHERE high_extent > 0 AND ' + yearly + ' comid =?'
     c.execute(query, (lake,))
     high_extent = c.fetchall()
 
     query = 'SELECT DISTINCT start_date, moderate_extent ' \
-            'FROM cyan_lakes WHERE moderate_extent > 0 AND comid =?'
+            'FROM cyan_lakes WHERE moderate_extent > 0 AND ' + yearly + ' comid =?'
     c.execute(query, (lake,))
     moderate_extent = c.fetchall()
 
     query = 'SELECT DISTINCT start_date, low_extent ' \
-            'FROM cyan_lakes WHERE low_extent > 0 AND comid =?'
+            'FROM cyan_lakes WHERE low_extent > 0 AND ' + yearly + ' comid =?'
     c.execute(query, (lake,))
     low_extent = c.fetchall()
 
     query = 'SELECT max(high_extent), avg(high_extent), max(moderate_extent), avg(moderate_extent), ' \
-            'max(low_extent), avg(low_extent) FROM cyan_lakes where comid=?'
+            'max(low_extent), avg(low_extent) FROM cyan_lakes WHERE ' + yearly + ' comid=?'
     c.execute(query, (lake,))
     extent = c.fetchall()[0]
 
@@ -557,7 +602,17 @@ def getcyan_lake_info(request, model='', lake='', header=''):
 
 
 @require_GET
-def getcyan_all_lake_info(request, model='', header=''):
+def getcyan_all_lake_info_yearly(request, model='',year='', header=''):
+
+    if len(year) != 4:
+        return JsonResponse({"error": "argument error: year value provided was not valid, please provide a valid year."
+                                      " Provided value = " + year})
+    y_query = " start_date LIKE '%" + str(year) + "%' AND "
+    return getcyan_all_lake_info(request, model, y_query, header)
+
+
+@require_GET
+def getcyan_all_lake_info(request, model='', yearly='', header=''):
     """
     Rest endpoint for retrieving cyan data statistics based on a specified lake comid.
     URL: https://qedinternal.epa.gov/cyan/rest/api/v1/lakes/info
@@ -591,7 +646,8 @@ def getcyan_all_lake_info(request, model='', header=''):
         c.execute("SELECT areasqkm, gnis_name FROM lakes WHERE comid=?", (comid,))
         lake_data = c.fetchall()
 
-        c.execute("SELECT DISTINCT start_date from cyan_lakes WHERE comid=?", (comid,))
+        q = "SELECT DISTINCT start_date from cyan_lakes WHERE " + yearly + " comid=?"
+        c.execute(q, (comid,))
         dates = c.fetchall()
         nDates = len(dates)
         if len(dates) == 0:
@@ -600,27 +656,27 @@ def getcyan_all_lake_info(request, model='', header=''):
         end_date = dates[nDates - 1]
 
         query = 'SELECT max(max), avg(mean), min(min) ' \
-                'FROM cyan_lakes WHERE comid =?'
+                'FROM cyan_lakes WHERE ' + yearly + ' comid =?'
         c.execute(query, (comid,))
         cI_data = c.fetchall()[0]
 
         query = 'SELECT DISTINCT start_date, high_extent ' \
-                'FROM cyan_lakes WHERE high_extent > 0 AND comid =?'
+                'FROM cyan_lakes WHERE high_extent > 0 AND ' + yearly + ' comid =?'
         c.execute(query, (comid,))
         high_extent = c.fetchall()
 
         query = 'SELECT DISTINCT start_date, moderate_extent ' \
-                'FROM cyan_lakes WHERE moderate_extent > 0 AND comid =?'
+                'FROM cyan_lakes WHERE moderate_extent > 0 AND ' + yearly +' comid =?'
         c.execute(query, (comid,))
         moderate_extent = c.fetchall()
 
         query = 'SELECT DISTINCT start_date, low_extent ' \
-                'FROM cyan_lakes WHERE low_extent > 0 AND comid =?'
+                'FROM cyan_lakes WHERE low_extent > 0 AND ' + yearly + ' comid =?'
         c.execute(query, (comid,))
         low_extent = c.fetchall()
 
         query = 'SELECT max(high_extent), avg(high_extent), max(moderate_extent), avg(moderate_extent), ' \
-                'max(low_extent), avg(low_extent) FROM cyan_lakes where comid=?'
+                'max(low_extent), avg(low_extent) FROM cyan_lakes WHERE ' + yearly + ' comid=?'
         c.execute(query, (comid,))
         extent = c.fetchall()[0]
 
