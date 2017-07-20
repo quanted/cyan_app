@@ -67,6 +67,7 @@ def getcyan_state_data(request, model='', state='', yearly='', header=''):
     if len(state) != 2:
         return JsonResponse({"error": "argument error: state value provided was not valid, please provide a valid state"
                                       " abbreviation. Provided value = " + state})
+    state = state.upper()
     # state name and area
     c.execute("SELECT state_name, sqmi FROM states WHERE state_abbr=?", (state,))
     state_info = c.fetchall()
@@ -165,6 +166,7 @@ def getcyan_state_lake_data(request, model='', state='', yearly='', header=''):
     if len(state) != 2:
         return JsonResponse({"error": "argument error: state value provided was not valid, please provide a valid state"
                                       " abbreviation. Provided value = " + state})
+    state = state.upper()
     # state name
     c.execute("SELECT state_name FROM states WHERE state_abbr=?", (state,))
     state_name = c.fetchall()
@@ -271,6 +273,7 @@ def getcyan_state_lake_info(request, model='', state='', yearly='', header=''):
     if len(state) != 2:
         return JsonResponse({"error": "argument error: state value provided was not valid, please provide a valid state"
                                       " abbreviation. Provided value = " + state})
+    state = state.upper()
     # state name
     c.execute("SELECT state_name, sqmi FROM states WHERE state_abbr=?", (state,))
     state_data = c.fetchall()
