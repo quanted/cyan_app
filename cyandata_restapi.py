@@ -34,6 +34,8 @@ base_metadata = {
     }
 }
 
+# TODO: Where possible, merge database queries.
+
 
 @require_GET
 def getcyan_state_data_yearly(request, model='', state='', year='', header=''):
@@ -292,8 +294,9 @@ def getcyan_state_lake_info(request, model='', state='', yearly='', header=''):
     lakes_area = c.fetchall()
 
     # Mean CI for the state
-    c.execute("SELECT avg(mean) FROM cyan_lakes INNER JOIN state_lakes WHERE cyan_lakes.comid = state_lakes.comid"
-              " AND state_lakes.state_abbr=?", (state,))
+    q = "SELECT avg(mean) FROM cyan_lakes INNER JOIN state_lakes WHERE " + yearly + \
+        " cyan_lakes.comid = state_lakes.comid AND state_lakes.state_abbr=?"
+    c.execute(q, (state,))
     meanCI = c.fetchall()
 
     cyan_lakes = {}
@@ -322,27 +325,27 @@ def getcyan_state_lake_info(request, model='', state='', yearly='', header=''):
         end_date = dates[nDates - 1]
 
         query = 'SELECT max(max), avg(mean), min(min) ' \
-                'FROM cyan_lakes WHERE comid =?'
+                'FROM cyan_lakes WHERE ' + yearly + ' comid =?'
         c.execute(query, (comid,))
         cI_data = c.fetchall()[0]
 
         query = 'SELECT DISTINCT start_date, high_extent ' \
-                'FROM cyan_lakes WHERE high_extent > 0 AND comid =?'
+                'FROM cyan_lakes WHERE ' + yearly + ' high_extent > 0 AND comid =?'
         c.execute(query, (comid,))
         high_extent = c.fetchall()
 
         query = 'SELECT DISTINCT start_date, moderate_extent ' \
-                'FROM cyan_lakes WHERE moderate_extent > 0 AND comid =?'
+                'FROM cyan_lakes WHERE ' + yearly + ' moderate_extent > 0 AND comid =?'
         c.execute(query, (comid,))
         moderate_extent = c.fetchall()
 
         query = 'SELECT DISTINCT start_date, low_extent ' \
-                'FROM cyan_lakes WHERE low_extent > 0 AND comid =?'
+                'FROM cyan_lakes WHERE ' + yearly + ' low_extent > 0 AND comid =?'
         c.execute(query, (comid,))
         low_extent = c.fetchall()
 
         query = 'SELECT max(high_extent), avg(high_extent), max(moderate_extent), avg(moderate_extent), ' \
-                'max(low_extent), avg(low_extent) FROM cyan_lakes where comid=?'
+                'max(low_extent), avg(low_extent) FROM cyan_lakes WHERE ' + yearly + ' comid=?'
         c.execute(query, (comid,))
         extent = c.fetchall()[0]
 
