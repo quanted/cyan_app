@@ -5,7 +5,7 @@ Definition of urls for qed_cyan.
 from datetime import datetime
 from django.conf.urls import url
 import django.contrib.auth.views
-from . import views, description, map, lakecomparison, dot_map
+from . import views, description, map, freqMap, lakecomparison, dot_map
 from . import dashboard, algorithms, references, cyan_rest, cyandata_restapi
 
 
@@ -15,6 +15,7 @@ urlpatterns = [
     #front end urls
     url(r'^$', description.description_page, {'model': 'cyan'}),
     url(r'^map$', map.map_page, {'model': 'cyan'}),
+    url(r'^freqMap$', freqMap.freqMap_page, {'model': 'cyan'}),
     url(r'^lakecomparison$', lakecomparison.lakecomparison_page, {'model': 'cyan'}),
     url(r'^dot_map', dot_map.dotmap_page, {'model': 'cyan'}),
     url(r'^dashboard$', dashboard.dashboard_page, {'model': 'cyan'}),
