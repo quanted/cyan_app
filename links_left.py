@@ -7,7 +7,7 @@ from django.shortcuts import redirect
 def ordered_list(model=None, page=None):
     link_dict = OrderedDict([
         ('Model', OrderedDict([
-                ('Cyan', 'cyan'),
+                ('CyAN', 'cyan'),
             ])
         ),
         ('Documentation', OrderedDict([
