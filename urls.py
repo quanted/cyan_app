@@ -7,7 +7,7 @@ from django.conf.urls import url
 from django.urls import path
 import django.contrib.auth.views
 from . import views, description, map, freqMap, lakecomparison, dot_map
-from . import dashboard, algorithms, references, cyan_rest, cyandata_restapi
+from . import dashboard, algorithms, references, cyan_rest, cyandata_restapi, web_app_api
 
 
 # if settings.IS_PUBLIC:
@@ -67,6 +67,12 @@ urlpatterns = [
     path('rest/api/v1/lakes/info/', cyandata_restapi.getcyan_all_lake_info, {'model': 'cyan'}),
     path('rest/api/v1/lakes/info/<int:year>/', cyandata_restapi.getcyan_all_lake_info_yearly, {'model': 'cyan'}),
     path('map/rest/location/data/', cyan_rest.get_location_data),
+
+    path('app/api/user/', web_app_api.login_user),
+    path('app/api/user/register/', web_app_api.register_user),
+    path('app/api/location/add/', web_app_api.add_location),
+    path('app/api/location/delete/<str:user>/<str:_id>/', web_app_api.delete_location),
+    path('app/api/location/edit/', web_app_api.edit_location)
 ]
 
 # 404 Error view (file not found)
