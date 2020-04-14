@@ -35,7 +35,7 @@ def cyan_landing_page(request):
     return response
 
 
-def file_not_found(request):
+def file_not_found(request, exception=None):
     """ Returns the html of the landing page for qed. """
     html = render_to_string('01epa_drupal_header.html', {})
     html += render_to_string('02epa_drupal_header_bluestripe.html', {})

@@ -1,7 +1,7 @@
 import requests
 import unittest
 import numpy.testing as npt
-import linkcheck_helper
+from . import linkcheck_helper
 
 test = {}
 
@@ -76,5 +76,6 @@ class TestCyanPages(unittest.TestCase):
 # 1) call the setup method,
 # 2) then call every method starting with "test",
 # 3) then the teardown method
+
 if __name__ == '__main__':
     unittest.main()
